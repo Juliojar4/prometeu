@@ -11,3 +11,7 @@ export * from './achievements';
 export * from './chest';
 export * from './rng';
 export * from './shop';
+export * from './gear';
+export * from './combat';
+export * from './classes';
+export * from './spells';

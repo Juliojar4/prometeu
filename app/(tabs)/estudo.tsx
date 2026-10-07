@@ -11,6 +11,7 @@ import { F, radius, useTheme } from '../../constants/theme';
 import {
   clampPages, clampStudyMinutes, FOCUS_OPTIONS, MAX_STUDY_MIN, STUDY_KINDS, STUDY_PILLAR_MIN, StudyKind, studyXp,
   timerElapsed, timerMinutes, timerPause, timerRemaining, timerStart, TimerState,
+  chargesFor,
 } from '../../lib/game';
 import { useGame } from '../../store/game';
 
@@ -115,7 +116,7 @@ export default function Estudo() {
             </View>
           )}
           <T sub style={{ fontSize: 12 }}>
-            Rende {studyXp(minutes, kind, pg)} XP de Intelecto ({KIND_LABEL[kind].toLowerCase()}){reading ? ', +1 a cada 10 páginas' : ''}. Máximo de {MAX_STUDY_MIN} min por registro.
+            Rende {studyXp(minutes, kind, pg)} XP de Intelecto ({KIND_LABEL[kind].toLowerCase()}){reading ? ', +1 a cada 10 páginas' : ''} e {chargesFor('study', { minutes })} carga(s) de ataque (1 a cada 15 min, até 4 por dia). Máximo de {MAX_STUDY_MIN} min por registro.
           </T>
           <Button title="Registrar estudo" onPress={save} icon={<MaterialCommunityIcons name="book-open-page-variant-outline" size={20} color={t.onPrimary} />} style={{ minHeight: 56 }} />
         </View>
@@ -162,7 +163,7 @@ export default function Estudo() {
       <ConfirmModal
         visible={removing !== null}
         title="Excluir esta sessão?"
-        message="O XP, as moedas e o dano ao chefão desta sessão serão devolvidos."
+        message="O XP, as moedas e as cargas desta sessão serão devolvidos. Cargas já gastas em combate viram dívida (o dano causado fica)."
         confirmLabel="Excluir"
         cancelLabel="Manter"
         destructive

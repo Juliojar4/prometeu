@@ -52,7 +52,7 @@ export default function Comida() {
               <View style={s.row}>
                 <MaterialCommunityIcons name={SLOT_ICON[slot.id]} size={26} color={ev ? t.gold : t.sub} />
                 <T serif style={{ flex: 1, fontSize: 17, fontWeight: '700' }}>{slot.label}</T>
-                {ev && <T serif style={{ color: t.attr.vitalidade, fontWeight: '700', fontSize: 14 }}>+{ev.xp} XP</T>}
+                {ev && <T serif style={{ color: t.attr.constituicao, fontWeight: '700', fontSize: 14 }}>+{ev.xp} XP</T>}
               </View>
               <View style={s.row}>
                 {RATINGS.map((r) => {

@@ -39,10 +39,10 @@ export function Amphora({ frac, drop }: { frac: number; drop: number }) {
       {/* boca e gargalo */}
       <View style={{ width: 64, height: 9, backgroundColor: t.gold, borderRadius: 2 }} />
       <View style={{ width: 38, height: 36, borderLeftWidth: 3, borderRightWidth: 3, borderColor: metal, backgroundColor: t.card2 }} />
-      <Animated.View style={[{ position: 'absolute', top: 2, width: 9, height: 9, borderRadius: 5, borderTopLeftRadius: 0, backgroundColor: t.attr.energia }, dropSt]} />
+      <Animated.View style={[{ position: 'absolute', top: 2, width: 9, height: 9, borderRadius: 5, borderTopLeftRadius: 0, backgroundColor: t.water }, dropSt]} />
       {/* pança */}
       <View style={{ width: D, height: D, borderRadius: D / 2, borderWidth: 3, borderColor: t.gold, backgroundColor: t.track, overflow: 'hidden', justifyContent: 'flex-end' }}>
-        <Animated.View style={[{ backgroundColor: t.attr.energia, opacity: 0.92 }, fill]}>
+        <Animated.View style={[{ backgroundColor: t.water, opacity: 0.92 }, fill]}>
           <Animated.View style={[{ position: 'absolute', top: 0, left: 0, right: 0, height: 5, backgroundColor: '#FFFFFF' }, shineSt]} />
         </Animated.View>
         <View style={{ position: 'absolute', top: D * 0.4, left: 0, right: 0 }}>

@@ -50,7 +50,7 @@ export default function Agua() {
         </View>
         <View style={{ width: 200 }}><Divider /></View>
         <T sub style={{ fontSize: 12, textAlign: 'center' }}>
-          Cada copo: +{REWARDS.water.xp} XP de Energia. Meta do dia: bônus de +{WATER_GOAL_BONUS.xp} XP{met ? ' (já recebido)' : ''}.
+          Cada copo: +{REWARDS.water.xp} XP de Constituição. Meta do dia: +{WATER_GOAL_BONUS.xp} XP e 2 cargas de ataque{met ? ' (já recebidos)' : ''}.
         </T>
       </View>
 

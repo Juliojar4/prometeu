@@ -25,3 +25,10 @@ export function removeXp(p: Progress, lost: number): Progress {
   }
   return { level, xp: Math.max(0, xp) };
 }
+
+/** XP acumulado desde o nível 1 (converte o formato antigo nível + XP dentro do nível). */
+export function totalXp(p: Progress): number {
+  let t = p.xp;
+  for (let l = 1; l < p.level; l++) t += xpForNextLevel(l);
+  return t;
+}

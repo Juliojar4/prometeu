@@ -3,16 +3,17 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { AppState, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AttrIcon } from '../../components/AttrIcon';
+import { AttrIcon, AttrRows } from '../../components/AttrIcon';
 import { BossEmblem } from '../../components/BossEmblem';
 import { ConfirmModal } from '../../components/Modal';
 import { Avatar } from '../../components/Avatar';
 import { Confetti } from '../../components/Confetti';
 import { Flame } from '../../components/Flame';
+import { SparkCount } from '../../components/Spell';
 import { Coin, Medallion } from '../../components/Medallion';
-import { Bar, Card, SectionTitle, T } from '../../components/ui';
+import { Bar, Button, Card, SectionTitle, T } from '../../components/ui';
 import { radius, useTheme } from '../../constants/theme';
-import { addDays, ATTRS, ATTR_LABEL, bossInfoForWeek, MAX_SHIELDS, pillarsDone, STUDY_PILLAR_MIN, xpForNextLevel } from '../../lib/game';
+import { addDays, ATTR_LABEL, ATTRS, bossInfoForWeek, MAX_SHIELDS, pillarsDone, STUDY_PILLAR_MIN, xpForNextLevel } from '../../lib/game';
 import { useGame } from '../../store/game';
 
 type Glyph = keyof typeof MaterialCommunityIcons.glyphMap;
@@ -21,7 +22,7 @@ export default function Home() {
   const t = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { profile, streak, todayRecord: day, settings, missions, boss, pendingChest, today, levelUpTick, load, completeMission, undoMission } = useGame();
+  const { profile, streak, todayRecord: day, settings, missions, boss, combat, pendingChest, today, levelUpTick, load, completeMission, undoMission } = useGame();
   const [undoing, setUndoing] = useState<string | null>(null);
 
   // virou o dia / voltou do background
@@ -71,6 +72,11 @@ export default function Home() {
                 <T serif style={{ fontSize: 34, fontWeight: '700', color: t.ember }}>{streak.streak}</T>
                 <T sub numberOfLines={1}>{streak.streak === 1 ? 'dia de chama' : 'dias de chama'}</T>
               </View>
+              {combat && (
+                <Pressable onPress={() => router.push('/grimorio')} accessibilityRole="button" accessibilityHint="Abre o grimório" hitSlop={6} style={{ alignSelf: 'flex-start' }}>
+                  <SparkCount sparks={combat.sparks} max={combat.sparkMax} />
+                </Pressable>
+              )}
             </View>
             <View style={[s.row, { gap: 3 }]} accessible accessibilityLabel={`${streak.shields} de ${MAX_SHIELDS} escudos`}>
               {Array.from({ length: MAX_SHIELDS }, (_, i) => (
@@ -110,21 +116,7 @@ export default function Home() {
         {/* Atributos */}
         <View style={{ gap: 14 }}>
           <SectionTitle>Atributos</SectionTitle>
-          {ATTRS.map((a) => {
-            const p = profile.attrs[a];
-            return (
-              <View key={a} style={s.row}>
-                <AttrIcon attr={a} size={34} />
-                <View style={{ flex: 1, gap: 6 }}>
-                  <View style={s.between}>
-                    <T style={{ fontWeight: '600' }}>{ATTR_LABEL[a]}</T>
-                    <T serif sub style={{ fontSize: 13 }}>Nv {p.level}</T>
-                  </View>
-                  <Bar value={p.xp / xpForNextLevel(p.level)} color={t.attr[a]} height={9} />
-                </View>
-              </View>
-            );
-          })}
+          <AttrRows attrs={profile.attrs} />
         </View>
 
         {/* Chefao */}
@@ -147,10 +139,28 @@ export default function Home() {
                   <T style={{ fontSize: 12, fontWeight: '600', color: t.gold }}>Baú pronto para abrir</T>
                 </View>
               ) : (
-                <T sub style={{ fontSize: 12 }}>Cada hábito feito fere a criatura</T>
+                <T sub style={{ fontSize: 12 }}>{defeated ? 'Outra criatura chega na segunda' : 'Cada hábito vira carga de ataque'}</T>
               )}
-              <T style={{ fontSize: 12, fontWeight: '600' }}>{defeated ? 'Derrotado' : `${boss.hp} / ${boss.maxHp}`}</T>
+              <T style={{ fontSize: 12, fontWeight: '600' }}>{defeated ? 'Derrotado' : `${boss.hp} / ${boss.maxHp} HP`}</T>
             </View>
+            {combat && !defeated && (
+              <>
+                <View style={[s.row, { gap: 6 }]} accessible accessibilityLabel={`Cargas: ${ATTRS.map((a) => `${ATTR_LABEL[a]} ${combat.charges[a]}`).join(', ')}`}>
+                  {ATTRS.map((a) => (
+                    <View key={a} style={[s.charge, { borderColor: t.border, backgroundColor: t.card2 }]}>
+                      <AttrIcon attr={a} size={24} />
+                      <T serif style={{ fontSize: 16, fontWeight: '700', color: combat.charges[a] < 0 ? t.danger : t.text }}>{combat.charges[a]}</T>
+                    </View>
+                  ))}
+                </View>
+                <Button
+                  title={combat.heroHp === 0 ? 'Recuado até amanhã' : 'Lutar'}
+                  variant={combat.heroHp === 0 ? 'ghost' : 'primary'}
+                  onPress={() => router.push('/combate')}
+                  icon={<MaterialCommunityIcons name={combat.heroHp === 0 ? 'campfire' : 'sword-cross'} size={18} color={combat.heroHp === 0 ? t.bronze : t.onPrimary} />}
+                />
+              </>
+            )}
           </Card>
         </Pressable>
 
@@ -195,7 +205,7 @@ export default function Home() {
       <ConfirmModal
         visible={undoing !== null}
         title="Desfazer esta missão?"
-        message="O XP, as moedas e o dano ao chefão desta missão serão devolvidos."
+        message="O XP, as moedas e a carga desta missão serão devolvidos. Se a carga já foi gasta em combate, vira dívida (o dano causado fica)."
         confirmLabel="Desfazer"
         cancelLabel="Manter"
         onConfirm={() => { if (undoing) undoMission(undoing); setUndoing(null); }}
@@ -224,5 +234,6 @@ const s = StyleSheet.create({
   pillar: { flex: 1, alignItems: 'center', borderRadius: radius.md, borderWidth: 1, paddingVertical: 14, paddingHorizontal: 4, gap: 6 },
   mission: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: radius.md, borderWidth: 1, paddingVertical: 14, paddingHorizontal: 16, minHeight: 64 },
   note: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: radius.md, padding: 12 },
+  charge: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderRadius: radius.sm, paddingVertical: 6 },
   check: { width: 30, height: 30, borderRadius: 15, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
 });

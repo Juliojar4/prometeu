@@ -1,11 +1,13 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../components/Avatar';
+import { ClassPicker } from '../components/ClassPicker';
 import { Flame } from '../components/Flame';
 import { Button, Card, Meander, SectionTitle, T } from '../components/ui';
 import { AVATARS, F, radius, useTheme } from '../constants/theme';
+import type { ClassId } from '../lib/game';
 import { useGame } from '../store/game';
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -62,7 +64,37 @@ export default function Onboarding() {
   const [waterGoal, setWater] = useState(8);
   const [weeklyWorkoutGoal, setWorkouts] = useState(3);
   const [r, setR] = useState({ water: '10:00', workout: '18:00', meal: '12:30' });
+  const [step, setStep] = useState<0 | 1>(0); // 0 = nome, busto e metas; 1 = senda (classe)
+  const [cls, setCls] = useState<ClassId | null>(null);
   const valid = name.trim().length > 0 && Object.values(r).every((v) => TIME.test(v));
+  useEffect(() => {
+    if (step === 0) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => { setStep(0); return true; });
+    return () => sub.remove();
+  }, [step]);
+
+  if (step === 1) return (
+    <View style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={{ padding: 20, paddingTop: insets.top + 12, paddingBottom: 24, gap: 20 }} showsVerticalScrollIndicator={false}>
+        <Pressable onPress={() => setStep(0)} accessibilityRole="button" accessibilityLabel="Voltar" hitSlop={12} style={[s.row, { gap: 6, alignSelf: 'flex-start' }]}>
+          <MaterialCommunityIcons name="chevron-left" size={22} color={t.bronze} />
+          <T serif style={{ fontSize: 12, letterSpacing: 1.5, color: t.bronze }}>VOLTAR</T>
+        </Pressable>
+        <View style={{ alignItems: 'center', gap: 10 }}>
+          <Avatar id={avatar} size={96} cls={cls} />
+          <T serif style={{ fontSize: 24, letterSpacing: 3, fontWeight: '700' }}>SUA SENDA</T>
+          <View style={{ width: 140 }}><Meander cell={3} opacity={0.8} /></View>
+          <T sub style={{ textAlign: 'center', lineHeight: 21, maxWidth: 300 }}>
+            Cada herói luta do seu jeito. A classe muda só o combate: todo hábito vale o mesmo, e dá para trocar depois pelo perfil.
+          </T>
+        </View>
+        <ClassPicker value={cls} onChange={setCls} />
+      </ScrollView>
+      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: insets.bottom + 12, backgroundColor: t.bg, borderTopWidth: 1, borderTopColor: t.border }}>
+        <Button title={cls ? 'Acender a chama' : 'Escolha uma senda'} disabled={!cls} onPress={() => cls && finish({ name, avatar, cls, waterGoal, weeklyWorkoutGoal, reminders: r })} />
+      </View>
+    </View>
+  );
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -130,7 +162,7 @@ export default function Onboarding() {
 
       {/* CTA fixo na metade inferior, acima da barra de navegacao do Android */}
       <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: insets.bottom + 12, backgroundColor: t.bg, borderTopWidth: 1, borderTopColor: t.border }}>
-        <Button title="Acender a chama" disabled={!valid} onPress={() => finish({ name, avatar, waterGoal, weeklyWorkoutGoal, reminders: r })} />
+        <Button title="Continuar" disabled={!valid} onPress={() => setStep(1)} />
       </View>
     </KeyboardAvoidingView>
   );

@@ -1,10 +1,11 @@
 import type { Reward } from './actions';
+import { workoutAttr } from './attributes';
 
 // ---------- água ----------
 export const CUP_ML = 250;
 export const MAX_CUPS_PER_DAY = 24;
 /** Bônus único ao bater a meta do dia (vira evento `water_goal`; some se o dia cair abaixo da meta). */
-export const WATER_GOAL_BONUS: Reward = { xp: 20, coins: 5, attr: 'energia', bossDamage: 15 };
+export const WATER_GOAL_BONUS: Reward = { xp: 20, coins: 5, attr: 'constituicao', bossDamage: 0 };
 
 /** Litros formatados em pt-BR ("1,25 L"). */
 export const litersLabel = (cups: number) => `${String(cups * CUP_ML / 1000).replace('.', ',')} L`;
@@ -32,7 +33,6 @@ export const INTENSITIES: { id: Intensity; label: string; mult: number }[] = [
 ];
 export const MAX_WORKOUT_MIN = 240;
 export const MAX_WORKOUT_COINS = 40;
-export const MAX_WORKOUT_DAMAGE = 60;
 
 export const clampMinutes = (m: number) => Math.min(MAX_WORKOUT_MIN, Math.max(1, Math.floor(Number.isFinite(m) ? m : 0)));
 
@@ -40,9 +40,10 @@ export const clampMinutes = (m: number) => Math.min(MAX_WORKOUT_MIN, Math.max(1,
 export const workoutXp = (minutes: number, intensity: Intensity) =>
   Math.round(clampMinutes(minutes) * INTENSITIES.find((i) => i.id === intensity)!.mult);
 
-export function workoutReward(minutes: number, intensity: Intensity): Reward {
+/** `attr` = atributo principal (o valor real sai de workoutSplit ao derivar dos eventos; "outro" divide 50/50). */
+export function workoutReward(minutes: number, intensity: Intensity, kind: WorkoutKind = 'musculacao', quick?: string): Reward {
   const xp = workoutXp(minutes, intensity);
-  return { xp, coins: Math.min(MAX_WORKOUT_COINS, Math.round(xp / 4)), attr: 'forca', bossDamage: Math.min(MAX_WORKOUT_DAMAGE, Math.round(xp / 2)) };
+  return { xp, coins: Math.min(MAX_WORKOUT_COINS, Math.round(xp / 4)), attr: workoutAttr(kind, quick), bossDamage: 0 };
 }
 
 // ---------- alimentação ----------
@@ -64,11 +65,11 @@ export const MEAL_TAGS: { id: MealTag; label: string }[] = [
 export const MEAL_RATING_XP: Record<MealRating, number> = { bom: 20, ok: 12, ruim: 5 };
 export const MEAL_TAG_XP = 3;
 
-/** XP por nota + 3 por tag (tags repetidas/desconhecidas não contam). Vai para Vitalidade. Ruim ainda dá um pouco. */
+/** XP por nota + 3 por tag (tags repetidas/desconhecidas não contam). Vai para Constituição. Ruim ainda dá um pouco. */
 export function mealReward(rating: MealRating, tags: MealTag[]): Reward {
   const n = new Set(tags.filter((t) => MEAL_TAGS.some((x) => x.id === t))).size;
   const xp = MEAL_RATING_XP[rating] + n * MEAL_TAG_XP;
-  return { xp, coins: rating === 'ruim' ? 2 : rating === 'ok' ? 4 : 5, attr: 'vitalidade', bossDamage: rating === 'ruim' ? 3 : rating === 'ok' ? 7 : 10 };
+  return { xp, coins: rating === 'ruim' ? 2 : rating === 'ok' ? 4 : 5, attr: 'constituicao', bossDamage: 0 };
 }
 
 // ---------- estudo ----------
@@ -83,7 +84,6 @@ export const STUDY_KINDS: { id: StudyKind; label: string; mult: number }[] = [
 export const FOCUS_OPTIONS = [15, 25, 45];
 export const MAX_STUDY_MIN = 240;
 export const MAX_STUDY_COINS = 40;
-export const MAX_STUDY_DAMAGE = 60;
 export const PAGES_PER_BONUS_XP = 10; // +1 XP a cada 10 páginas
 export const MAX_PAGES_BONUS = 20;
 export const MAX_PAGES = 2000;
@@ -100,7 +100,7 @@ export function studyXp(minutes: number, kind: StudyKind, pages = 0) {
 
 export function studyReward(minutes: number, kind: StudyKind, pages = 0): Reward {
   const xp = studyXp(minutes, kind, pages);
-  return { xp, coins: Math.min(MAX_STUDY_COINS, Math.round(xp / 4)), attr: 'intelecto', bossDamage: Math.min(MAX_STUDY_DAMAGE, Math.round(xp / 2)) };
+  return { xp, coins: Math.min(MAX_STUDY_COINS, Math.round(xp / 4)), attr: 'intelecto', bossDamage: 0 };
 }
 
 export type BookSummary = { title: string; pages: number; minutes: number; sessions: number; last: number };

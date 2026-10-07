@@ -2,7 +2,7 @@ import { useMemo, type ReactElement } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pressable, View } from 'react-native';
 import { avatarById, type Theme, useTheme } from '../constants/theme';
-import { Look, lookOf } from '../lib/game';
+import { classById, gearById, Look, lookOf, type ClassId } from '../lib/game';
 import { useGame } from '../store/game';
 
 /** Folha de louro: elipse rotacionada. */
@@ -90,11 +90,20 @@ function Bust({ kind, d, fg, accent, acc, t }: { kind: 'helmet' | 'laurel' | 'be
 /**
  * Avatar: busto de estatua sobre fundo tonal, aro de bronze e os itens equipados (cor, adereços, companheiro).
  * `look` forca uma aparencia (previa na loja); sem ele, usa o que esta equipado. `tired` = estatua dessaturada + selo de sono.
+ * Insígnia da classe (Etapa C): losango no canto inferior esquerdo, slot próprio que não disputa com adereços nem pet.
+ * Panóplia (Etapa E): arma/escudo de combate equipados no canto superior esquerdo (o selo de cansaço fica no direito).
+ * `cls` força a classe (prévia na escolha de senda); sem ele, usa a do perfil.
  */
-export function Avatar({ id, tired, size = 64, onPress, look }: { id: string; tired?: boolean; size?: number; onPress?: () => void; look?: Look }) {
+export function Avatar({ id, tired, size = 64, onPress, look, cls }: { id: string; tired?: boolean; size?: number; onPress?: () => void; look?: Look; cls?: ClassId | null }) {
   const t = useTheme();
   const equipped = useGame((g) => g.equipped);
+  const own = useGame((g) => g.profile?.cls ?? null);
+  const klass = classById(cls === undefined ? own : cls);
   const lk = useMemo(() => look ?? lookOf(equipped), [look, equipped]);
+  const kit = useGame((g) => g.loadout.equipped);
+  const weapon = look ? undefined : gearById(kit.arma);
+  const shield = look ? undefined : gearById(kit.escudo);
+  const legend = weapon?.rarity === 'lendario' || shield?.rarity === 'lendario';
   const a = avatarById(id);
   const ring = Math.max(2, size * 0.035);
   const inner = size - ring * 2 - size * 0.08;
@@ -107,6 +116,32 @@ export function Avatar({ id, tired, size = 64, onPress, look }: { id: string; ti
       {tired && (
         <View style={{ position: 'absolute', right: -size * 0.04, top: -size * 0.04, width: size * 0.36, height: size * 0.36, borderRadius: size, backgroundColor: t.card2, borderWidth: 1, borderColor: t.bronze, alignItems: 'center', justifyContent: 'center' }}>
           <MaterialCommunityIcons name="sleep" size={size * 0.22} color={t.gold} />
+        </View>
+      )}
+      {klass && size >= 56 && (
+        <View
+          accessible
+          accessibilityLabel={klass.name}
+          style={{ position: 'absolute', left: -size * 0.02, bottom: -size * 0.02, width: size * 0.34, height: size * 0.34, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <View style={{ position: 'absolute', width: size * 0.24, height: size * 0.24, transform: [{ rotate: '45deg' }], backgroundColor: t.card2, borderWidth: Math.max(1, size * 0.015), borderColor: t.gold }} />
+          <MaterialCommunityIcons name={klass.icon as never} size={size * 0.15} color={t.attr[klass.attr]} />
+        </View>
+      )}
+      {(weapon || shield) && size >= 56 && (
+        // panóplia (Etapa E): slot próprio no canto superior esquerdo; escudo = disco, arma = glifo por cima
+        <View
+          accessible
+          accessibilityLabel={[weapon?.name, shield?.name].filter(Boolean).join(' e ')}
+          style={{ position: 'absolute', left: -size * 0.04, top: -size * 0.04, width: size * 0.34, height: size * 0.34, alignItems: 'center', justifyContent: 'center' }}
+        >
+          {legend && <View style={{ position: 'absolute', width: size * 0.36, height: size * 0.36, borderRadius: size, backgroundColor: t.gold, opacity: 0.14 }} />}
+          {shield ? (
+            <View style={{ position: 'absolute', width: size * 0.27, height: size * 0.27, borderRadius: size, backgroundColor: t.card2, borderWidth: Math.max(1, size * 0.015), borderColor: shield.rarity === 'lendario' ? t.gold : t.bronze }} />
+          ) : (
+            <View style={{ position: 'absolute', width: size * 0.2, height: size * 0.2, transform: [{ rotate: '45deg' }], backgroundColor: t.card2, borderWidth: Math.max(1, size * 0.015), borderColor: t.bronze }} />
+          )}
+          <MaterialCommunityIcons name={(weapon ?? shield)!.icon as never} size={size * 0.15} color={(weapon ?? shield)!.rarity === 'lendario' ? t.gold : t.text} />
         </View>
       )}
       {lk.pet && (

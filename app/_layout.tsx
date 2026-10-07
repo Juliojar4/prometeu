@@ -9,6 +9,7 @@ import { useEffect } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AchievementBanner } from '../components/AchievementBanner';
+import { ChargeToast } from '../components/ChargeToast';
 import { F, useTheme } from '../constants/theme';
 import { useGame } from '../store/game';
 
@@ -16,6 +17,7 @@ export default function RootLayout() {
   const t = useTheme();
   const ready = useGame((s) => s.ready);
   const onboarded = useGame((s) => !!s.profile);
+  const hasClass = useGame((s) => !!s.profile?.cls); // perfis anteriores às classes escolhem a senda uma vez, antes da Home
   const load = useGame((s) => s.load);
   const [fontsLoaded, fontError] = useFonts({
     Cinzel_500Medium, Cinzel_700Bold, Cinzel_900Black,
@@ -49,14 +51,21 @@ export default function RootLayout() {
         <Stack.Protected guard={!onboarded}>
           <Stack.Screen name="onboarding" />
         </Stack.Protected>
-        <Stack.Protected guard={onboarded}>
+        <Stack.Protected guard={onboarded && hasClass}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="perfil" options={header('PERFIL')} />
           <Stack.Screen name="chefao" options={header('PROVAÇÃO')} />
+          <Stack.Screen name="combate" options={header('COMBATE')} />
           <Stack.Screen name="loja" options={header('LOJA')} />
           <Stack.Screen name="conquistas" options={header('CONQUISTAS')} />
+          <Stack.Screen name="grimorio" options={header('GRIMÓRIO')} />
+          <Stack.Screen name="arsenal" options={header('ARSENAL')} />
+        </Stack.Protected>
+        <Stack.Protected guard={onboarded}>
+          <Stack.Screen name="senda" options={header('SENDA')} />
         </Stack.Protected>
       </Stack>
+      <ChargeToast />
       <AchievementBanner />
     </SafeAreaProvider>
   );

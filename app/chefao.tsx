@@ -1,15 +1,16 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { BossEmblem } from '../components/BossEmblem';
 import { Chest, ChestPhase } from '../components/Chest';
 import { Confetti } from '../components/Confetti';
-import { ItemArt, RarityMarks } from '../components/ItemArt';
+import { GearArt, ItemArt, RarityMarks } from '../components/ItemArt';
 import { Coin } from '../components/Medallion';
 import { Bar, Button, Card, SectionTitle, T } from '../components/ui';
 import { useTheme } from '../constants/theme';
-import { addDays, Boss, bossInfoForWeek, ChestReward, daysBetween, EventType, itemById, MEAL_SLOTS, missionById, RARITY } from '../lib/game';
+import { addDays, AttrKey, Boss, bossInfoForWeek, ChestLoot, daysBetween, GEAR_RARITY_LABEL, gearById, gearText, itemById, MEAL_SLOTS, missionById, RARITY, SLOT_LABEL, spellById, STRIKES } from '../lib/game';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGame } from '../store/game';
 
@@ -20,6 +21,8 @@ const KIND: Record<string, { icon: Glyph; label: string }> = {
   workout: { icon: 'dumbbell', label: 'Treino' },
   meal: { icon: 'food-apple-outline', label: 'Refeição' },
   mission: { icon: 'script-text-outline', label: 'Missão' },
+  study: { icon: 'book-open-page-variant-outline', label: 'Estudo' },
+  combat: { icon: 'sword-cross', label: 'Combate' },
 };
 const DOW = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
 const DOW_FULL = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
@@ -29,9 +32,10 @@ const hhmm = (ts: number) => `${String(new Date(ts).getHours()).padStart(2, '0')
 export default function Chefao() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
-  const { boss, weekDamage, pendingChest, today, levelUpTick, openChest, profile } = useGame();
+  const router = useRouter();
+  const { boss, combat, weekDamage, pendingChest, today, levelUpTick, openChest, profile } = useGame();
   const [phase, setPhase] = useState<ChestPhase>('closed');
-  const [opened, setOpened] = useState<{ boss: Boss; reward: ChestReward | null } | null>(null);
+  const [opened, setOpened] = useState<{ boss: Boss; reward: ChestLoot | null } | null>(null);
   if (!boss || !profile) return null;
 
   const info = bossInfoForWeek(boss.weekStart);
@@ -56,6 +60,7 @@ export default function Chefao() {
   };
 
   const item = opened?.reward?.itemId ? itemById(opened.reward.itemId) : null;
+  const gear = opened?.reward?.gearId ? gearById(opened.reward.gearId) : null;
 
   return (
     <View style={{ flex: 1 }}>
@@ -73,6 +78,15 @@ export default function Chefao() {
             </View>
           </View>
           <T sub style={{ fontSize: 13, lineHeight: 20, textAlign: 'center' }}>{info.line}</T>
+          {combat && (
+            <T serif style={{ fontSize: 11, letterSpacing: 1.5, color: t.sub }}>CA {combat.boss.ac}  ·  ATAQUE +{combat.boss.atk}  ·  {combat.boss.die}{combat.boss.dmgBonus ? `+${combat.boss.dmgBonus}` : ''}</T>
+          )}
+          {!defeated && (
+            <Button variant="ghost" title="Arsenal" onPress={() => router.push('/arsenal')} icon={<MaterialCommunityIcons name="shield-sword-outline" size={18} color={t.gold} />} style={{ alignSelf: 'stretch' }} />
+          )}
+          {!defeated && (
+            <Button title="Lutar" onPress={() => router.push('/combate')} icon={<MaterialCommunityIcons name="sword-cross" size={20} color={t.onPrimary} />} style={{ alignSelf: 'stretch', minHeight: 54 }} />
+          )}
         </Card>
 
         {/* Baú */}
@@ -84,9 +98,19 @@ export default function Chefao() {
               <View style={{ alignItems: 'center', gap: 12, alignSelf: 'stretch' }}>
                 <View style={[s.row, { gap: 8 }]}>
                   <Coin size={26} />
-                  <T serif style={{ fontSize: 30, fontWeight: '700', color: t.gold }}>+{opened.reward.coins}</T>
+                  <T serif style={{ fontSize: 30, fontWeight: '700', color: t.gold }}>+{opened.reward.coins + opened.reward.dup}</T>
                 </View>
-                {item ? (
+                {gear ? (
+                  <View style={[s.item, { borderColor: t.gold, backgroundColor: t.card2 }]}>
+                    <GearArt item={gear} size={56} dim={!!opened.reward.dup} />
+                    <View style={{ flex: 1, gap: 4 }}>
+                      <T style={{ fontSize: 11, letterSpacing: 1.5, color: t.sub }} serif>{opened.reward.dup ? `REPETIDO · +${opened.reward.dup} MOEDAS` : 'NOVO EQUIPAMENTO'}</T>
+                      <T serif style={{ fontSize: 16, fontWeight: '700' }}>{gear.name}</T>
+                      <View style={s.row}><RarityMarks gear={gear.rarity} /><T sub style={{ fontSize: 12 }}>{GEAR_RARITY_LABEL[gear.rarity]} · {SLOT_LABEL[gear.slot]}</T></View>
+                      <T sub style={{ fontSize: 12 }}>{[gearText(gear).base, `${gearText(gear).attuned} sintonizado`].filter(Boolean).join(' · ')}</T>
+                    </View>
+                  </View>
+                ) : item ? (
                   <View style={[s.item, { borderColor: t.gold, backgroundColor: t.card2 }]}>
                     <ItemArt item={item} avatarId={profile.avatar} size={56} />
                     <View style={{ flex: 1, gap: 4 }}>
@@ -99,6 +123,7 @@ export default function Chefao() {
                   <T sub style={{ textAlign: 'center' }}>Você já possui todos os itens da loja. Moedas extras no lugar.</T>
                 )}
                 {item && <T sub style={{ fontSize: 12, textAlign: 'center' }}>Está no seu inventário, na Loja.</T>}
+                {gear && !opened.reward.dup && <Button variant="ghost" title="Abrir o arsenal" onPress={() => router.push('/arsenal')} icon={<MaterialCommunityIcons name="shield-sword-outline" size={18} color={t.gold} />} style={{ alignSelf: 'stretch' }} />}
               </View>
             ) : (
               <>
@@ -113,7 +138,7 @@ export default function Chefao() {
           <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
             <MaterialCommunityIcons name={defeated ? 'check-decagram' : 'treasure-chest-outline'} size={32} color={t.bronze} />
             <T sub style={{ flex: 1, fontSize: 13, lineHeight: 19 }}>
-              {defeated ? 'O baú desta provação já foi aberto. Outra criatura chega na segunda-feira.' : 'Derrote a criatura para abrir o baú: moedas e um item da loja.'}
+              {defeated ? 'O baú desta provação já foi aberto. Outra criatura chega na segunda-feira.' : 'Derrote a criatura para abrir o baú: moedas e um item (adereço da loja ou equipamento de combate).'}
             </T>
           </Card>
         )}
@@ -138,10 +163,10 @@ export default function Chefao() {
         {/* Histórico */}
         <View style={{ gap: 10 }}>
           <SectionTitle>Histórico de dano</SectionTitle>
-          {weekDamage.length === 0 && <T sub style={{ fontSize: 14 }}>Nenhum golpe ainda. Cada hábito feito fere a criatura.</T>}
+          {weekDamage.length === 0 && <T sub style={{ fontSize: 14 }}>Nenhum golpe ainda. Cada hábito vira carga; gaste-as em Lutar.</T>}
           {weekDamage.slice(0, 12).map((e) => {
-            const k = KIND[e.type as EventType] ?? KIND.water;
-            const detail = e.type === 'mission' ? missionById(e.ref ?? '')?.title : e.type === 'meal' ? MEAL_SLOTS.find((m) => m.id === e.ref)?.label : null;
+            const k = KIND[e.type] ?? KIND.water;
+            const detail = e.type === 'combat' ? STRIKES[e.ref as AttrKey]?.name ?? spellById(e.ref)?.name : e.type === 'mission' ? missionById(e.ref ?? '')?.title : e.type === 'meal' ? MEAL_SLOTS.find((m) => m.id === e.ref)?.label : null;
             const when = e.date === today ? `Hoje, ${hhmm(e.ts)}` : `${DOW_FULL[new Date(e.ts).getDay()]}, ${hhmm(e.ts)}`;
             return (
               <View key={e.id} style={[s.log, { backgroundColor: t.card, borderColor: t.border }]}>

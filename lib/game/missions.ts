@@ -1,4 +1,4 @@
-import type { Attr } from './attributes';
+import type { AttrKey } from './attributes';
 import { hash, rng } from './rng';
 
 import type { MealRating, MealSlot, MealTag, StudyKind, WorkoutKind } from './habits';
@@ -10,25 +10,25 @@ export type AutoRule =
   | { type: 'meal'; tag?: MealTag; slot?: MealSlot; ratings?: MealRating[] }
   | { type: 'study'; minutes?: number; pages?: number; kind?: StudyKind };
 
-export type Mission = { id: string; title: string; xp: number; coins: number; attr: Attr; auto?: AutoRule };
+export type Mission = { id: string; title: string; xp: number; coins: number; attr: AttrKey; auto?: AutoRule };
 
-const m = (id: string, title: string, attr: Attr, xp = 20, coins = 5, auto?: AutoRule): Mission => ({ id, title, xp, coins, attr, auto });
+const m = (id: string, title: string, attr: AttrKey, xp = 20, coins = 5, auto?: AutoRule): Mission => ({ id, title, xp, coins, attr, auto });
 
 export const MISSIONS: Mission[] = [
-  // Energia (hidratação)
-  m('agua-cedo', 'Beba 2 copos de água antes das 10h', 'energia', 20, 5, { type: 'water', cups: 2, beforeHour: 10 }),
-  m('agua-garrafa', 'Deixe uma garrafa de água ao alcance da mão', 'energia', 15, 3),
-  m('agua-refeicao', 'Beba um copo de água antes de cada refeição', 'energia'),
-  m('agua-sem-refri', 'Passe o dia sem refrigerante', 'energia', 30, 8),
-  m('agua-cha', 'Troque um café por chá sem açúcar', 'energia', 20, 5),
-  m('agua-metade', 'Beba metade da sua meta de água até o meio-dia', 'energia', 25, 6, { type: 'water', goalFraction: 0.5, beforeHour: 12 }),
-  m('agua-noite', 'Tome um copo de água antes de dormir', 'energia', 15, 3),
-  m('agua-lembrete', 'Beba água a cada hora do expediente', 'energia', 30, 8),
-  m('agua-fruta', 'Prepare uma água saborizada com frutas', 'energia', 20, 5),
-  m('agua-treino', 'Hidrate-se bem antes e depois do treino', 'energia', 20, 5),
-  // Força (treino)
-  m('forca-alongar', 'Alongue-se por 5 minutos', 'forca', 15, 3, { type: 'workout', kind: 'alongamento', minutes: 5 }),
-  m('forca-caminhada', 'Faça uma caminhada de 20 minutos', 'forca', 30, 8, { type: 'workout', kind: 'caminhada', minutes: 20 }),
+  // Constituição: hidratação (antes Energia)
+  m('agua-cedo', 'Beba 2 copos de água antes das 10h', 'constituicao', 20, 5, { type: 'water', cups: 2, beforeHour: 10 }),
+  m('agua-garrafa', 'Deixe uma garrafa de água ao alcance da mão', 'constituicao', 15, 3),
+  m('agua-refeicao', 'Beba um copo de água antes de cada refeição', 'constituicao'),
+  m('agua-sem-refri', 'Passe o dia sem refrigerante', 'constituicao', 30, 8),
+  m('agua-cha', 'Troque um café por chá sem açúcar', 'constituicao', 20, 5),
+  m('agua-metade', 'Beba metade da sua meta de água até o meio-dia', 'constituicao', 25, 6, { type: 'water', goalFraction: 0.5, beforeHour: 12 }),
+  m('agua-noite', 'Tome um copo de água antes de dormir', 'constituicao', 15, 3),
+  m('agua-lembrete', 'Beba água a cada hora do expediente', 'constituicao', 30, 8),
+  m('agua-fruta', 'Prepare uma água saborizada com frutas', 'constituicao', 20, 5),
+  m('agua-treino', 'Hidrate-se bem antes e depois do treino', 'constituicao', 20, 5),
+  // Força e Destreza (treino)
+  m('forca-alongar', 'Alongue-se por 5 minutos', 'destreza', 15, 3, { type: 'workout', kind: 'alongamento', minutes: 5 }),
+  m('forca-caminhada', 'Faça uma caminhada de 20 minutos', 'destreza', 30, 8, { type: 'workout', kind: 'caminhada', minutes: 20 }),
   m('forca-flexoes', 'Faça 10 flexões (ou na parede, ou no joelho)', 'forca'),
   m('forca-agacha', 'Faça 20 agachamentos', 'forca'),
   m('forca-prancha', 'Segure a prancha por 30 segundos', 'forca'),
@@ -37,21 +37,21 @@ export const MISSIONS: Mission[] = [
   m('forca-treino', 'Complete um treino de pelo menos 30 minutos', 'forca', 40, 10, { type: 'workout', minutes: 30 }),
   m('forca-dancar', 'Dance sua música favorita inteira', 'forca', 15, 3),
   m('forca-postura', 'Cuide da postura: ajuste a cadeira e a tela', 'forca', 15, 3),
-  // Vitalidade (alimentação)
-  m('vit-fruta', 'Coma uma fruta hoje', 'vitalidade', 15, 3, { type: 'meal', tag: 'fruta' }),
-  m('vit-salada', 'Coma uma porção de salada ou legumes', 'vitalidade', 20, 5, { type: 'meal', tag: 'verdura' }),
-  m('vit-cafe', 'Tome um café da manhã de verdade', 'vitalidade', 20, 5, { type: 'meal', slot: 'cafe', ratings: ['bom', 'ok'] }),
-  m('vit-doce', 'Passe o dia sem doces industrializados', 'vitalidade', 30, 8),
-  m('vit-cozinhar', 'Cozinhe uma refeição em casa', 'vitalidade', 30, 8, { type: 'meal', tag: 'caseiro' }),
-  m('vit-devagar', 'Faça uma refeição sem celular, mastigando devagar', 'vitalidade'),
-  m('vit-proteina', 'Inclua uma fonte de proteína em cada refeição', 'vitalidade', 25, 6),
-  m('vit-cores', 'Monte um prato com pelo menos 3 cores', 'vitalidade'),
-  m('vit-lanche', 'Leve um lanche saudável de casa', 'vitalidade', 20, 5),
-  m('vit-sono', 'Jante pelo menos 2 horas antes de dormir', 'vitalidade', 20, 5),
+  // Constituição: alimentação (antes Vitalidade)
+  m('vit-fruta', 'Coma uma fruta hoje', 'constituicao', 15, 3, { type: 'meal', tag: 'fruta' }),
+  m('vit-salada', 'Coma uma porção de salada ou legumes', 'constituicao', 20, 5, { type: 'meal', tag: 'verdura' }),
+  m('vit-cafe', 'Tome um café da manhã de verdade', 'constituicao', 20, 5, { type: 'meal', slot: 'cafe', ratings: ['bom', 'ok'] }),
+  m('vit-doce', 'Passe o dia sem doces industrializados', 'constituicao', 30, 8),
+  m('vit-cozinhar', 'Cozinhe uma refeição em casa', 'constituicao', 30, 8, { type: 'meal', tag: 'caseiro' }),
+  m('vit-devagar', 'Faça uma refeição sem celular, mastigando devagar', 'constituicao'),
+  m('vit-proteina', 'Inclua uma fonte de proteína em cada refeição', 'constituicao', 25, 6),
+  m('vit-cores', 'Monte um prato com pelo menos 3 cores', 'constituicao'),
+  m('vit-lanche', 'Leve um lanche saudável de casa', 'constituicao', 20, 5),
+  m('vit-sono', 'Jante pelo menos 2 horas antes de dormir', 'constituicao', 20, 5),
   // Gerais
-  m('geral-sol', 'Tome 10 minutos de sol', 'energia', 15, 3),
-  m('geral-respirar', 'Faça 2 minutos de respiração profunda', 'energia', 15, 3),
-  m('geral-dormir', 'Vá para a cama no horário planejado', 'energia', 25, 6),
+  m('geral-sol', 'Tome 10 minutos de sol', 'constituicao', 15, 3),
+  m('geral-respirar', 'Faça 2 minutos de respiração profunda', 'constituicao', 15, 3),
+  m('geral-dormir', 'Vá para a cama no horário planejado', 'constituicao', 25, 6),
   // Intelecto (estudo e leitura)
   m('int-ler10', 'Leia 10 páginas de um livro', 'intelecto', 20, 5, { type: 'study', kind: 'leitura', pages: 10 }),
   m('int-ler30', 'Leia 30 páginas hoje', 'intelecto', 35, 9, { type: 'study', kind: 'leitura', pages: 30 }),

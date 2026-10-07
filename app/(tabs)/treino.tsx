@@ -9,8 +9,9 @@ import { ConfirmModal } from '../../components/Modal';
 import { Bar, Button, Card, SectionTitle, T } from '../../components/ui';
 import { radius, useTheme } from '../../constants/theme';
 import {
-  clampMinutes, INTENSITIES, Intensity, MAX_WORKOUT_MIN, QUICK_WORKOUTS, QuickWorkout, timerElapsed, timerMinutes,
+  ATTR_LABEL, clampMinutes, quickIdOf, workoutAttr, INTENSITIES, Intensity, MAX_WORKOUT_MIN, QUICK_WORKOUTS, QuickWorkout, timerElapsed, timerMinutes,
   timerPause, timerRemaining, timerStart, TimerState, WORKOUT_KINDS, WorkoutKind, workoutXp,
+  chargesFor,
 } from '../../lib/game';
 import { useGame } from '../../store/game';
 
@@ -90,7 +91,7 @@ export default function Treino() {
             {INTENSITIES.map((i) => <Chip key={i.id} label={i.label} selected={intensity === i.id} onPress={() => setIntensity(i.id)} style={{ flex: 1 }} />)}
           </View>
           <T sub style={{ fontSize: 12 }}>
-            Rende {workoutXp(minutes, intensity)} XP de Força ({minutes} min × {INTENSITIES.find((i) => i.id === intensity)!.mult}). Máximo de {MAX_WORKOUT_MIN} min por registro.
+            Rende {workoutXp(minutes, intensity)} XP de {kind === 'outro' ? 'Força e Destreza (metade cada)' : ATTR_LABEL[workoutAttr(kind)]} ({minutes} min × {INTENSITIES.find((i) => i.id === intensity)!.mult}) e {chargesFor('workout', { minutes })} carga(s) de ataque (1 a cada 15 min, até 4 por dia). Máximo de {MAX_WORKOUT_MIN} min por registro.
           </T>
           <Button title="Registrar treino" onPress={save} icon={<MaterialCommunityIcons name="fire" size={20} color={t.onPrimary} />} style={{ minHeight: 56 }} />
         </View>
@@ -100,11 +101,11 @@ export default function Treino() {
           <SectionTitle>Treinos de hoje</SectionTitle>
           {todays.length === 0 && <T sub style={{ fontSize: 14 }}>Nenhum treino ainda. Uma caminhada de dez minutos já acende a brasa.</T>}
           {todays.map((e) => {
-            const d = e.data as { kind?: WorkoutKind; minutes?: number; intensity?: Intensity; name?: string } | null;
+            const d = e.data as { kind?: WorkoutKind; minutes?: number; intensity?: Intensity; name?: string; quick?: string } | null;
             const k = d?.kind ?? 'outro';
             return (
               <View key={e.id} style={[s.item, { backgroundColor: t.card, borderColor: t.border }]}>
-                <MaterialCommunityIcons name={KIND_ICON[k]} size={26} color={t.attr.forca} />
+                <MaterialCommunityIcons name={KIND_ICON[k]} size={26} color={t.attr[workoutAttr(k, quickIdOf(d?.quick, d?.name))]} />
                 <View style={{ flex: 1, gap: 2 }}>
                   <T style={{ fontWeight: '600' }}>{d?.name ?? WORKOUT_KINDS.find((x) => x.id === k)?.label ?? 'Treino'}</T>
                   <T sub style={{ fontSize: 12 }}>{d?.minutes ? `${d.minutes} min · ${INTENSITY_LABEL[d.intensity ?? 'media']} · ` : ''}+{e.xp} XP</T>
@@ -120,7 +121,7 @@ export default function Treino() {
       <ConfirmModal
         visible={removing !== null}
         title="Excluir este treino?"
-        message="O XP, as moedas e o dano ao chefão deste treino serão devolvidos."
+        message="O XP, as moedas e as cargas deste treino serão devolvidos. Cargas já gastas em combate viram dívida (o dano causado fica)."
         confirmLabel="Excluir"
         cancelLabel="Manter"
         destructive
@@ -164,7 +165,7 @@ function QuickCard({ w, open, locked, onOpen, onDone }: { w: QuickWorkout; open:
   const finish = (ms: number) => {
     if (done.current) return;
     done.current = true;
-    addWorkout({ kind: w.kind, minutes: timerMinutes(ms, w.minutes), intensity: w.intensity, name: w.name });
+    addWorkout({ kind: w.kind, minutes: timerMinutes(ms, w.minutes), intensity: w.intensity, name: w.name, quick: w.id });
     setTimer(idle);
     onDone();
     setTimeout(() => (done.current = false), 500);
@@ -185,13 +186,14 @@ function QuickCard({ w, open, locked, onOpen, onDone }: { w: QuickWorkout; open:
     setTimer(running ? timerPause(timer, n) : timerStart(timer, n));
   };
   const conclude = () => finish(timerElapsed(timer, Date.now()));
+  const c = t.attr[workoutAttr(w.kind, w.id)];
   const cancel = () => { setTimer(idle); };
 
   return (
     <Card style={{ gap: 12, borderColor: open ? t.bronze : t.border, opacity: locked ? 0.45 : 1 }}>
       <Pressable onPress={onOpen} disabled={locked || started} accessibilityRole="button" accessibilityState={{ expanded: open }} style={s.row}>
-        <View style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: t.attr.forca, backgroundColor: t.attr.forca + '22', alignItems: 'center', justifyContent: 'center' }}>
-          <MaterialCommunityIcons name={QUICK_ICON[w.id] ?? 'fire'} size={22} color={t.attr.forca} />
+        <View style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: c, backgroundColor: c + '22', alignItems: 'center', justifyContent: 'center' }}>
+          <MaterialCommunityIcons name={QUICK_ICON[w.id] ?? 'fire'} size={22} color={c} />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <T serif style={{ fontSize: 17, fontWeight: '700' }}>{w.name}</T>

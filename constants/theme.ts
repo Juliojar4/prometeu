@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 import { useColorScheme } from 'react-native';
-import { lookOf, type Attr } from '../lib/game';
+import { lookOf, type AttrKey } from '../lib/game';
 import { useGame } from '../store/game';
 
 /**
@@ -24,7 +24,9 @@ const dark = {
   ember: '#E8622A',
   danger: '#C4452F',
   marble: '#D8CDB6',
-  attr: { forca: '#D1633A', vitalidade: '#8FA05A', energia: '#5C8DBA', intelecto: '#A98BD0' } as Record<Attr, string>,
+  // Destreza: verdete (pátina do bronze); contraste >= 5:1 sobre card/card2 de todos os temas
+  attr: { forca: '#D1633A', destreza: '#56AFA2', constituicao: '#8FA05A', intelecto: '#A98BD0' } as Record<AttrKey, string>,
+  water: '#5C8DBA', // azul-egeu da água (ânfora)
   scheme: 'dark' as 'dark' | 'light',
 };
 const light: typeof dark = {
@@ -44,7 +46,8 @@ const light: typeof dark = {
   ember: '#D2561C',
   danger: '#A8341F',
   marble: '#E4DAC4',
-  attr: { forca: '#B5471F', vitalidade: '#5F6F34', energia: '#2F5F8C', intelecto: '#6A4B9C' } as Record<Attr, string>,
+  attr: { forca: '#B5471F', destreza: '#1A675E', constituicao: '#5F6F34', intelecto: '#6A4B9C' } as Record<AttrKey, string>,
+  water: '#2F5F8C',
   scheme: 'light',
 };
 
@@ -84,7 +87,7 @@ const BUILT: Record<string, { dark: Theme; light: Theme }> = {
 };
 
 /** Compat: cor de atributo (tema escuro). Prefira `useTheme().attr[a]`. */
-export const ATTR_COLOR: Record<Attr, string> = dark.attr;
+export const ATTR_COLOR: Record<AttrKey, string> = dark.attr;
 
 /** Mostra um tema sem equipá-lo (prévia na loja). */
 export const ThemePreview = createContext<string | null>(null);
@@ -110,7 +113,7 @@ export const shadow = (t: Theme) =>
 
 export const AVATARS = [
   // ids preservados (gravados no banco); nomes/estetica novos
-  { id: 'raposa', nome: 'Hoplita', bg: '#4A2A1C', kind: 'helmet' as const },
+  { id: 'raposa', nome: 'Guerreiro', bg: '#4A2A1C', kind: 'helmet' as const },
   { id: 'dragao', nome: 'Oráculo', bg: '#2F3A22', kind: 'laurel' as const },
   { id: 'robo', nome: 'Titã', bg: '#1F3347', kind: 'beard' as const },
 ];

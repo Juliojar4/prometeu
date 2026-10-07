@@ -1,5 +1,4 @@
 import { applyChanges, applyReward, GameState, revertReward, REWARDS } from './actions';
-import { initialAttributes } from './attributes';
 import { newBoss } from './boss';
 import {
   mealReward, MAX_WORKOUT_MIN, timerElapsed, timerMinutes, timerPause, timerRemaining, timerStart, litersLabel,
@@ -7,12 +6,12 @@ import {
 } from './habits';
 import { removeXp, applyXp } from './xp';
 
-const base = (): GameState => ({ level: 1, xp: 0, coins: 0, attrs: initialAttributes(), boss: newBoss('2026-10-06', 1) });
+const base = (): GameState => ({ level: 1, xp: 0, coins: 0, boss: newBoss('2026-10-06', 1) });
 
 describe('agua', () => {
-  it('copo = 5 XP de Energia', () => {
+  it('copo = 5 XP de Constituição', () => {
     expect(REWARDS.water.xp).toBe(5);
-    expect(REWARDS.water.attr).toBe('energia');
+    expect(REWARDS.water.attr).toBe('constituicao');
   });
   it('bonus da meta: concede uma vez, revoga ao cair abaixo, nao duplica', () => {
     expect(waterBonusAction(7, 8, false)).toBeNull();
@@ -46,10 +45,10 @@ describe('treino', () => {
     expect(workoutXp(0, 'leve')).toBe(1);
     expect(workoutXp(NaN, 'leve')).toBe(1);
   });
-  it('moedas e dano no chefao tem teto', () => {
+  it('moedas tem teto; sem dano passivo no chefao (Etapa B)', () => {
     const r = workoutReward(9999, 'forte');
     expect(r.coins).toBe(40);
-    expect(r.bossDamage).toBe(60);
+    expect(r.bossDamage).toBe(0);
     expect(r.attr).toBe('forca');
   });
 });
@@ -61,11 +60,11 @@ describe('refeicao', () => {
     expect(o).toBeGreaterThan(r);
     expect(r).toBeGreaterThan(0);
   });
-  it('3 XP por tag, sem duplicar, vai para Vitalidade', () => {
+  it('3 XP por tag, sem duplicar, vai para Constituição', () => {
     expect(mealReward('bom', ['fruta', 'verdura']).xp).toBe(26);
     expect(mealReward('ok', ['fruta', 'fruta']).xp).toBe(15);
     expect(mealReward('ruim', ['fruta', 'verdura', 'caseiro', 'sem_refri']).xp).toBe(17);
-    expect(mealReward('bom', []).attr).toBe('vitalidade');
+    expect(mealReward('bom', []).attr).toBe('constituicao');
   });
 });
 
@@ -86,10 +85,10 @@ describe('reversoes', () => {
     const s = base();
     expect(revertReward(s, REWARDS.workout).boss.hp).toBe(s.boss.maxHp);
   });
-  it('applyChanges grava o dano REAL quando o chefao morre; reverter devolve so isso', () => {
+  it('applyChanges grava o dano REAL quando o chefao morre; reverter devolve so isso (eventos antigos)', () => {
     let s = base();
     s = { ...s, boss: { ...s.boss, hp: 4 } };
-    const r = applyChanges(s, [], [REWARDS.workout]);
+    const r = applyChanges(s, [], [{ ...REWARDS.workout, bossDamage: 30 }]);
     expect(r.applied[0].bossDamage).toBe(4);
     expect(r.state.boss.hp).toBe(0);
     expect(revertReward(r.state, r.applied[0]).boss.hp).toBe(4);

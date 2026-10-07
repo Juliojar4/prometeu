@@ -3,7 +3,6 @@ import { BOSSES, bossInfoForWeek, newBoss } from './boss';
 import { chestReward, CHEST_ALL_OWNED_BONUS, CHEST_MAX_COINS, CHEST_MIN_COINS } from './chest';
 import { addDays } from './dates';
 import { applyChanges } from './actions';
-import { initialAttributes } from './attributes';
 import { autoMissionDone, MISSIONS } from './missions';
 import { hash, rng } from './rng';
 import { ITEMS, itemById, lookOf, purchase, toggleEquip } from './shop';
@@ -36,8 +35,8 @@ describe('chefao semanal', () => {
   });
   it('desfazer devolve o HP exato tirado (sem passar do maximo)', () => {
     const boss = { ...newBoss('2026-10-06', 1), hp: 10 };
-    const s = { level: 1, xp: 0, coins: 0, attrs: initialAttributes(), boss };
-    const hit = { xp: 5, coins: 2, attr: 'energia' as const, bossDamage: 30 };
+    const s = { level: 1, xp: 0, coins: 0, boss };
+    const hit = { xp: 5, coins: 2, attr: 'constituicao' as const, bossDamage: 30 };
     const { state, applied } = applyChanges(s, [], [hit]);
     expect(state.boss.hp).toBe(0);
     expect(applied[0].bossDamage).toBe(10); // dano real, limitado ao HP restante

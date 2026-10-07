@@ -1,6 +1,6 @@
 import { applyReward, REWARDS, GameState } from './actions';
-import { addAttrXp, initialAttributes } from './attributes';
-import { bossForDate, bossMaxHp, damageBoss, isDefeated, newBoss } from './boss';
+import { attrXpFromEvents, scoreFromXp } from './attributes';
+import { bossForDate, bossInfoForWeek, bossMaxHp, damageBoss, isDefeated, newBoss } from './boss';
 import { addDays, daysBetween, toDateStr, weekStart } from './dates';
 import { MISSIONS, pickDailyMissions } from './missions';
 import { computeStreak, DayRecord, isActiveDay } from './streak';
@@ -29,12 +29,10 @@ describe('xp', () => {
 });
 
 describe('atributos', () => {
-  it('niveis separados', () => {
-    const a = addAttrXp(initialAttributes(), 'forca', 150);
-    expect(a.levelsGained).toBe(1);
-    expect(a.attrs.forca).toEqual({ level: 2, xp: 50 });
-    expect(a.attrs.vitalidade).toEqual({ level: 1, xp: 0 });
-    expect(a.attrs.energia).toEqual({ level: 1, xp: 0 });
+  it('separados: XP de Força nao mexe nos outros', () => {
+    const a = attrXpFromEvents([{ type: 'workout', attr: 'forca', xp: 150, kind: 'musculacao' }]);
+    expect(scoreFromXp(a.forca)).toBe(9);
+    expect(a).toMatchObject({ destreza: 0, constituicao: 0, intelecto: 0 });
   });
 });
 
@@ -104,23 +102,23 @@ describe('streak', () => {
 });
 
 describe('chefao', () => {
-  it('HP cresce com o nivel', () => {
-    expect(bossMaxHp(1)).toBe(400);
-    expect(bossMaxHp(3)).toBe(460);
+  it('HP = cargas que a criatura aguenta x dano medio por carga do heroi', () => {
+    expect(bossMaxHp('2026-10-06', 2)).toBe(2 * bossInfoForWeek('2026-10-06').charges);
+    expect(bossMaxHp('2026-10-06', 4)).toBe(2 * bossMaxHp('2026-10-06', 2));
   });
   it('dano reduz HP e nao fica negativo', () => {
-    const b = newBoss('2026-10-06', 1);
-    expect(damageBoss(b, 100).hp).toBe(300);
+    const b = newBoss('2026-10-06', 10);
+    expect(damageBoss(b, 100).hp).toBe(b.maxHp - 100);
     const dead = damageBoss(b, 9999);
     expect(dead.hp).toBe(0);
     expect(isDefeated(dead)).toBe(true);
   });
   it('reseta na segunda-feira', () => {
-    const b = damageBoss(newBoss('2026-10-06', 1), 100);
+    const b = damageBoss(newBoss('2026-10-06', 10), 100);
     expect(bossForDate(b, '2026-10-11', 5)).toBe(b); // domingo: mesma semana
     const next = bossForDate(b, '2026-10-12', 5); // segunda
     expect(next.weekStart).toBe('2026-10-12');
-    expect(next.hp).toBe(bossMaxHp(5));
+    expect(next.hp).toBe(bossMaxHp('2026-10-12', 5));
   });
 });
 
@@ -140,14 +138,13 @@ describe('missoes', () => {
 });
 
 describe('applyReward', () => {
-  const base = (): GameState => ({ level: 1, xp: 0, coins: 0, attrs: initialAttributes(), boss: newBoss('2026-10-06', 1) });
-  it('aplica XP geral, atributo, moedas e dano', () => {
+  const base = (): GameState => ({ level: 1, xp: 0, coins: 0, boss: newBoss('2026-10-06', 1) });
+  it('aplica XP geral, atributo e moedas; sem dano passivo no chefao (Etapa B)', () => {
     const r = applyReward(base(), REWARDS.workout);
     expect(r.state.xp).toBe(60);
     expect(r.state.coins).toBe(15);
-    expect(r.state.attrs.forca.xp).toBe(60);
-    expect(r.state.attrs.energia.xp).toBe(0);
-    expect(r.state.boss.hp).toBe(370);
+    expect(r.reward.attr).toBe('forca');
+    expect(r.state.boss.hp).toBe(r.state.boss.maxHp);
     expect(r.levelsGained).toBe(0);
   });
   it('reporta subida de nivel', () => {

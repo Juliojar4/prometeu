@@ -1,9 +1,9 @@
 import { ACHIEVEMENTS, emptyStats, newlyUnlocked } from './achievements';
 import { applyChanges } from './actions';
-import { ATTRS, initialAttributes, mostEvolved } from './attributes';
+import { ATTRS, mostEvolved } from './attributes';
 import { newBoss } from './boss';
 import { addDays } from './dates';
-import { clampPages, clampStudyMinutes, MAX_PAGES_BONUS, MAX_STUDY_COINS, MAX_STUDY_DAMAGE, MAX_STUDY_MIN, studyReward, studyXp, summarizeBooks } from './habits';
+import { clampPages, clampStudyMinutes, MAX_PAGES_BONUS, MAX_STUDY_COINS, MAX_STUDY_MIN, studyReward, studyXp, summarizeBooks } from './habits';
 import { autoMissionDone, MISSIONS, pickDailyMissions } from './missions';
 import { computeStreak, DayRecord, isActiveDay, pillarsDone, STUDY_PILLAR_MIN } from './streak';
 
@@ -11,14 +11,14 @@ const d = (date: string, o: Partial<DayRecord> = {}): DayRecord => ({ date, wate
 const st = (kind: string, minutes: number, extra: Record<string, unknown> = {}, ts = 1) => ({ type: 'study', ref: null, ts, data: { kind, minutes, ...extra } });
 
 describe('intelecto', () => {
-  it('e o quarto atributo e nasce no nivel 1', () => {
+  it('e um dos 4 atributos', () => {
     expect(ATTRS).toHaveLength(4);
-    expect(initialAttributes().intelecto).toEqual({ level: 1, xp: 0 });
+    expect(ATTRS).toContain('intelecto');
   });
   it('mostEvolved considera os 4 atributos', () => {
-    const a = initialAttributes();
-    expect(mostEvolved(a, { ...a, intelecto: { level: 1, xp: 40 } })).toBe('intelecto');
-    expect(mostEvolved(a, { ...a, forca: { level: 2, xp: 0 }, intelecto: { level: 1, xp: 40 } })).toBe('forca');
+    const a = { forca: 0, destreza: 0, constituicao: 0, intelecto: 0 };
+    expect(mostEvolved(a, { ...a, intelecto: 40 })).toBe('intelecto');
+    expect(mostEvolved(a, { ...a, forca: 100, intelecto: 40 })).toBe('forca');
   });
 });
 
@@ -42,19 +42,19 @@ describe('xp de estudo', () => {
     expect(clampStudyMinutes(NaN)).toBe(1);
     expect(clampPages(-3)).toBe(0);
   });
-  it('recompensa vai para Intelecto, com teto de moedas e dano', () => {
+  it('recompensa vai para Intelecto, com teto de moedas e sem dano passivo (Etapa B)', () => {
     const r = studyReward(25, 'leitura', 0);
-    expect(r).toEqual({ xp: 25, coins: 6, attr: 'intelecto', bossDamage: 13 });
+    expect(r).toEqual({ xp: 25, coins: 6, attr: 'intelecto', bossDamage: 0 });
     const big = studyReward(240, 'idioma', 0);
     expect(big.coins).toBe(MAX_STUDY_COINS);
-    expect(big.bossDamage).toBe(MAX_STUDY_DAMAGE);
+    expect(big.bossDamage).toBe(0);
   });
-  it('aplicar e desfazer devolve XP geral, do atributo, moedas e dano', () => {
-    const s = { level: 1, xp: 0, coins: 0, attrs: initialAttributes(), boss: newBoss('2026-10-06', 1) };
+  it('aplicar e desfazer devolve XP geral, do atributo e moedas', () => {
+    const s = { level: 1, xp: 0, coins: 0, boss: newBoss('2026-10-06', 1) };
     const r = studyReward(30, 'leitura');
     const { state, applied } = applyChanges(s, [], [r]);
-    expect(state.attrs.intelecto.xp).toBe(30);
-    expect(state.boss.hp).toBe(s.boss.maxHp - 15);
+    expect(state.xp).toBe(30);
+    expect(state.boss.hp).toBe(s.boss.maxHp);
     expect(applyChanges(state, applied, []).state).toEqual(s);
   });
 });
@@ -126,7 +126,7 @@ describe('missoes de estudo', () => {
 describe('conquistas de estudo', () => {
   it('ha pelo menos 6 novas e desbloqueiam pelos criterios', () => {
     expect(ACHIEVEMENTS.length).toBeGreaterThanOrEqual(34);
-    const s = { ...emptyStats(), studySessions: 1, studyMinutes: 600, pages: 500, books: 3, longestStudy: 45, intelectoLevel: 5 };
+    const s = { ...emptyStats(), studySessions: 1, studyMinutes: 600, pages: 500, books: 3, longestStudy: 45, intelectoScore: 14 };
     expect(newlyUnlocked(s, []).map((a) => a.id)).toEqual(expect.arrayContaining(['primeira-sessao', 'dez-horas', 'rato-de-biblioteca', 'tres-livros', 'foco-profundo', 'intelecto-5']));
     expect(newlyUnlocked({ ...s, studyMinutes: 599 }, []).map((a) => a.id)).not.toContain('dez-horas');
   });
